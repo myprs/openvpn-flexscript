@@ -1,0 +1,86 @@
+#!/bin/sh
+
+
+DEBUG=${DEBUG:-0}
+
+
+usage_ovpnflexinit ()  {
+
+echo "usage: todo"
+
+
+}
+
+
+ovpnflexinit () {
+
+
+	[ $DEBUG -ge 2 ] && echo "DEBUG2: Entering function \"ovpnflexinit\""
+
+	BASEDIR=${INITDEVBASEDIR:-"/"}
+	# Standard BASEDIR may be overriden for development purposes
+	[ $DEBUG -ge 6 ] && echo "DEBUG6: Basedir is \"$BASEDIR\""
+
+	BINPATH="usr/local/sbin"
+	CONFPATH="etc/ovpnflex"
+
+	# check env
+	TUNNAME=${1:-"tun0"}
+	[ $DEBUG -ge 6 ] && echo "DEBUG6: Tunname is \"$TUNNAME\""
+
+	## do we have root privileges?
+	[ "$USER" = "root" ] || { echo "ERROR: $CALLNAME needs root privileges. Aborting!"; exit 1; }
+
+	# link scripts
+
+	[ -L "$BASEDIR$BINPATH/ovpnflexctl" ] || ln -s "$BASEDIR$BINPATH/$CALLNAME" "$BASEDIR$BINPATH/ovpnflexctl" 
+
+	# make tunnel  structure
+
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/modules/bin" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/modules/bin"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/etc" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/etc"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/up" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/up"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/itls-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/itls-verify"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/ipchange" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/ipchange"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-connect" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-connect"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-up" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-up"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-pre-down" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-pre-down"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-disconnect" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-disconnect"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/down" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/down"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/learn-address" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/learn-address"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/auth-user-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/auth-user-verify"
+
+	# set file mode and ownership
+	STAGE1GROUP=${STAGE1GROUP:-"openvpn"}
+
+
+	chown -R root:"$STAGE1GROUP" "$BASEDIR$CONFPATH/$TUNNAME"
+	chmod -R u=rw,g=r,o=r $BASEDIR$CONFPATH/$TUNNAME 
+	find $BASEDIR$CONFPATH/$TUNNAME -type d -exec chmod u=rwx,g=rx,o=rx '{}' ';'
+
+
+	[ $DEBUG -ge 2 ] && echo "DEBUG2: Leaving function \"ovpnflexinit\""
+
+}
+
+
+
+
+CALLNAME="`basename "$0"`"
+[ $DEBUG -ge 3 ] && echo "DEBUG3: Callname is \"$CALLNAME\""
+
+
+case "$CALLNAME" in
+	"ovpnflexctl")
+		echo "todo: openflexctl"
+		;;
+	"ovpnflexinit")
+		ovpnflexinit "$1"
+		;;
+	*)	
+		echo "Error: You cannot link ovpnflexinit as \"$CALLNAME\". Aborting."
+		usage
+		;;
+esac
+
+
