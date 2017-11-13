@@ -59,7 +59,7 @@ ovpnflexinit () {
 		cat >$BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf <<EOCONF
 # This is a default config. All possible parameters 
 # are listed below and are shown with their default values.
-# To use different values uncomment the lone and edit the
+# To use different values uncomment the line and edit the
 # value accordingly.
 
 
