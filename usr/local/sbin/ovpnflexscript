@@ -1,0 +1,113 @@
+#!/bin/sh
+
+
+DEBUG=${DEBUG:-0}
+
+
+usage ()  {
+
+echo "usage: $CALLNAME [-c CONFIGFILE] [-l LOGNAME] "
+
+
+}
+
+
+logmessage () {
+
+	# log message
+	logger -t "$LOGNAME" "$1"
+
+	# if interactive then write message on stdout
+	[ -t 0 ] && echo "\n$1"
+
+	# if return value not zero then exit with return value
+	[ $2 -ne 0 ] && exit $2
+
+}
+
+
+#####################################################
+#####################################################
+
+
+CALLNAME=`basename "$0"`
+CALLPATH=`dirname "$0"`
+
+
+
+
+# get commandline options
+
+OPTRSTRING="c:"
+
+while getopts "$OPTRSTRING" NEXTOPT ;
+ do
+        #echo "NEXTOPT:$NEXTOPT"
+        #echo "OPTARG:$OPTARG"
+
+        case $NEXTOPT in  
+                "c")
+			[ -n "$CONFIG" ] && logmessage "ERROR: Parameter -c must only be used once!. Aborting!" 1
+                        CONFIG="$OPTARG"
+                        ;;
+                "l")
+			[ -n "$LOGNAME" ] && logmessage "ERROR: Parameter -l must only be used once!. Aborting!" 1
+                        LOGNAME="$OPTARG"
+                        ;;
+                *)
+                        usage
+                        exit 1
+                        ;;
+        esac
+ done
+
+#echo $OPTIND
+shift $(( $OPTIND-1 ))
+
+# check if variable dev is set and makes sense
+[ -z "$dev" ] && logmessage "ERROR: variable \"dev\" not set. This script should only called by openvpn. Aborting!" 2
+ip link show "$dev" >/dev/null 2>&1 ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" does not exist. Aborting!" 3
+ip tuntap show | grep -E "^$dev: .*" >/dev/null ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" is not a tun/tap device. Aborting!" 4
+
+
+# read config
+
+CONFIG=${CONFIG:-"/etc/ovpnflex/$dev/ovpnflex.conf"}
+
+[ -f "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not found. Aborting!" 5
+[ -r "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not readable. Aborting!" 6
+
+. "$CONFIG"
+
+# set own environment
+TMPFILE="$1"
+
+## we already have set CONFIG
+STAGE0GROUP=${STAGE0GROUP:-"nobody"}
+STAGE1GROUP=${STAGE1GROUP:-"openvpn"}
+LOGNAME={LOGNAME:-"ovpnflexscript"}
+
+
+# check environment (-> man openvpn)
+
+
+# select stage
+
+case "$USER" in
+	"$STAGE0GROUP")
+		touch "$TMPFILE" || logmessage "ERROR: Could not create temporaay file \"$TMPFILE\". Aborting!" 10
+		sudo -u "STAGE1GROUP" "$CALLPATH/$CALLNAME" >"$TMPFILE"
+		RETVAL=$?
+		[ $RETVAL -ne 0 ] && rm "$TMPFILE"
+		exit $RETVAL
+		;;
+	"$STAGE1GROUP")
+		echo "tobedone: stage1"
+		;;
+	"root")
+		echo "tobedone: stage2"
+		;;
+	*)	
+		logmessage "ERROR: User \"$USER\" is not assigned to any stage. Aborting!" 50
+		;;
+esac
