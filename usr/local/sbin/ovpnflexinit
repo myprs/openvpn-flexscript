@@ -33,10 +33,13 @@ ovpnflexinit () {
 
 	# link scripts
 
+	[ $DEBUG -ge 5 ] && echo "DEBUG5: Creating links in Bindir. "
 	[ -L "$BASEDIR$BINPATH/ovpnflexctl" ] || ln -s "$BASEDIR$BINPATH/$CALLNAME" "$BASEDIR$BINPATH/ovpnflexctl" 
 
 	# make tunnel  structure
 
+	[ $DEBUG -ge 5 ] && echo "DEBUG5: Creating structure in confdir under \"$BASEDIR$CONFPATH/$TUNNAME\". "
+	
 	[ -d "$BASEDIR$CONFPATH/$TUNNAME/modules/bin" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/modules/bin"
 	[ -d "$BASEDIR$CONFPATH/$TUNNAME/etc" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/etc"
 	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/up" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/up"
@@ -50,9 +53,29 @@ ovpnflexinit () {
 	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/learn-address" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/learn-address"
 	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/auth-user-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/auth-user-verify"
 
+	# default config
+	if [ ! -f $BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf ] ;
+	then
+		cat >$BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf <<EOCONF
+# This is a default config. All possible parameters 
+# are listed below and are shown with their default values.
+# To use different values uncomment the lone and edit the
+# value accordingly.
+
+
+#STAGE1GROUP="openvpn"
+
+#LOGNAME="ovpnflexscript"
+EOCONF
+
+	fi
+
+	. $BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf
+
 	# set file mode and ownership
 	STAGE1GROUP=${STAGE1GROUP:-"openvpn"}
 
+	[ $DEBUG -ge 5 ] && echo "DEBUG5: Setting file mode and ownership under \"$BASEDIR$CONFPATH/$TUNNAME\" to root:$STAGE1GROUP. "
 
 	chown -R root:"$STAGE1GROUP" "$BASEDIR$CONFPATH/$TUNNAME"
 	chmod -R u=rw,g=r,o=r $BASEDIR$CONFPATH/$TUNNAME 
