@@ -62,10 +62,15 @@ ovpnflexinit () {
 # To use different values uncomment the line and edit the
 # value accordingly.
 
-
+# which user to use in which stage of privileg escalation
+#STAGE0GROUP="nobody"
 #STAGE1GROUP="openvpn"
 
+# Which name to use for tagging in the logs
 #LOGNAME="ovpnflexscript"
+
+#use LOGNAME instead of device name for upmost config directory (actually creates a link)
+#MAPDEV2LOGNAME=1
 EOCONF
 
 	fi

@@ -38,7 +38,7 @@ CALLPATH=`dirname "$0"`
 
 # get commandline options
 
-OPTRSTRING="c:"
+OPTRSTRING="c:l:"
 
 while getopts "$OPTRSTRING" NEXTOPT ;
  do
@@ -73,6 +73,8 @@ ip tuntap show | grep -E "^$dev: .*" >/dev/null ; [ $? -ne 0 ] && logmessage "ER
 # read config
 
 CONFIG=${CONFIG:-"/etc/ovpnflex/$dev/ovpnflex.conf"}
+[ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
+
 
 [ -f "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not found. Aborting!" 5
 [ -r "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not readable. Aborting!" 6
@@ -90,13 +92,23 @@ LOGNAME={LOGNAME:-"ovpnflexscript"}
 
 # check environment (-> man openvpn)
 
+## check STAGE0GROUP
+# nobody has no rights to query the databases
+if [ "$USER" != "nobody" ] ; 
+then
+	getent group "$STAGE0GROUP" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: Group \"$STAGE0GROUP\" in variable STAGE0GROUP does not exist. Aborting!" 7
+
+	## check STAGE1GROUP
+	getent group "$STAGE1GROUP" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: Group \"$STAGE1GROUP\" in variable STAGE1GROUP does not exist. Aborting!" 8
+fi
 
 # select stage
+[ $DEBUG -ge 4 ] && echo "DEBUG4: USER is \"$USER\""
 
 case "$USER" in
 	"$STAGE0GROUP")
 		touch "$TMPFILE" || logmessage "ERROR: Could not create temporaay file \"$TMPFILE\". Aborting!" 10
-		sudo -u "STAGE1GROUP" "$CALLPATH/$CALLNAME" >"$TMPFILE"
+		sudo -u "$STAGE1GROUP" "$CALLPATH/$CALLNAME" "$TMPFILE" >"$TMPFILE"
 		RETVAL=$?
 		[ $RETVAL -ne 0 ] && rm "$TMPFILE"
 		exit $RETVAL
