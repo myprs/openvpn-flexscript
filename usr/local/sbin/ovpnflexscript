@@ -71,8 +71,8 @@ ip tuntap show | grep -E "^$dev: .*" >/dev/null ; [ $? -ne 0 ] && logmessage "ER
 
 
 # read config
-
-CONFIG=${CONFIG:-"/etc/ovpnflex/$dev/ovpnflex.conf"}
+CONFIGBASE="/etc/ovpnflex"
+CONFIG=${CONFIG:-"/$CONFIGBASE/$dev/ovpnflex.conf"}
 [ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
 
 
@@ -87,8 +87,11 @@ TMPFILE="$1"
 ## we already have set CONFIG
 STAGE0GROUP=${STAGE0GROUP:-"nobody"}
 STAGE1GROUP=${STAGE1GROUP:-"openvpn"}
-LOGNAME={LOGNAME:-"ovpnflexscript"}
 
+DEF_LOGNAME="ovpnflexscript"
+LOGNAME=${LOGNAME:-"$DEF_LOGNAME"}
+
+MAPDEV2LOGNAME=${MAPDEV2LOGNAME:-0}
 
 # check environment (-> man openvpn)
 
@@ -101,6 +104,18 @@ then
 	## check STAGE1GROUP
 	getent group "$STAGE1GROUP" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: Group \"$STAGE1GROUP\" in variable STAGE1GROUP does not exist. Aborting!" 8
 fi
+
+# check MAPDEV2LOGNAME
+if [ $MAPDEV2LOGNAME -eq 1 ] ;
+then 
+	if [ "$LOGNAME" = "$DEF_LOGNAME" ] ;
+	then
+		logmessage "ERROR: MAPDEV2LOGNAME = 1 needs LOGNAME to be set differently from default \"$DEF_LOGNAME\". Aborting!" 9
+	else
+		[ -L "$CONFIGBASE/$LOGNAME"  ] || ln -s "$CONFIGBASE/$dev" "$CONFIGBASE/$LOGNAME"
+	fi
+fi
+
 
 # select stage
 [ $DEBUG -ge 4 ] && echo "DEBUG4: USER is \"$USER\""

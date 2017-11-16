@@ -70,7 +70,7 @@ ovpnflexinit () {
 #LOGNAME="ovpnflexscript"
 
 #use LOGNAME instead of device name for upmost config directory (actually creates a link)
-#MAPDEV2LOGNAME=1
+#MAPDEV2LOGNAME=0
 EOCONF
 
 	fi
