@@ -1,0 +1,13 @@
+# ovpnflex development settings
+
+# Root needs to run bash as nobody
+
+
+#User_Alias	OVPNFLEXDEVUSER = stefanbs
+
+
+#Cmnd_Alias	OVPNFLEXDEVCMD  = /home/stefanbs/develop/flexconnect2017/usr/local/sbin/ovpnflexscript
+
+
+#OVPNFLEXDEVUSER	ALL = OVPNFLEXDEVCMD
+
