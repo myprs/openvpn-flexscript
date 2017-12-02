@@ -1,0 +1,32 @@
+plugin_001 () {
+
+	echo running "plugin 001"
+
+}
+
+plugin_001
+
+plugin_002 () {
+
+	echo running "plugin 002"
+
+}
+
+plugin_002
+
+plugin_003 () {
+
+	echo running "plugin 003"
+
+}
+
+plugin_003
+
+plugin_004 () {
+
+	echo running "plugin 004"
+
+}
+
+plugin_004
+

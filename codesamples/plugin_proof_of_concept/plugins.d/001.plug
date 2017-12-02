@@ -1,0 +1,9 @@
+plugin_001 () {
+
+	echo running "plugin 001"
+	echo "TESTVAR is: $TESTVAR"
+
+}
+
+plugin_001
+

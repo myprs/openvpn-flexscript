@@ -1,0 +1,8 @@
+plugin_003 () {
+
+	echo running "plugin 003"
+
+}
+
+plugin_003
+

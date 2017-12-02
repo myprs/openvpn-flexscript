@@ -1,0 +1,41 @@
+#!/bin/sh
+
+echo "starting ..."
+
+PLUGDIR="plugins.d"
+PLUGDIR="plugs-active"
+PLUGASSY="$PLUGDIR/allplugins.assy"
+PLUGASSYLCK="$PLUGASSY.lck"
+
+# need to refresh the assy file?
+# should use flock...
+[ -f "$PLUGASSYLCK" ] || touch "$PLUGASSYLCK"
+
+if [ ! -f $PLUGDIR/allplugins.assy ] ;
+then 
+	echo "createing assembly"
+	cat $PLUGDIR/*.plug > $PLUGDIR/allplugins.assy
+else 
+	# assy changedate
+	CDATE_ASSY=`flock -s $PLUGASSYLCK -c "stat -c %Y -L $PLUGASSY | sort | tail -n 1"`
+
+	# last change date of plugs
+	CDATE_PLUGS=`stat -c %Y -L $PLUGDIR/*.plug | sort | tail -n 1`
+
+	# last change of plugdir
+	CDATE_PLUGDIR=`stat -c  %Y -L $PLUGDIR`
+
+
+	if [ $CDATE_ASSY -lt $CDATE_PLUGDIR -o $CDATE_ASSY -lt $CDATE_PLUGS ] ;
+	then
+		echo "refreshing assembly"
+		flock -e $PLUGASSYLCK -c "cat $PLUGDIR/*.plug > $PLUGASSY"
+	fi
+fi 
+
+
+export TESTVAR="Here I am"
+
+flock -s $PLUGASSYLCK -c \
+	" . $PLUGDIR/allplugins.assy"
+
