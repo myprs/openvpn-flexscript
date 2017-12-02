@@ -63,8 +63,8 @@ ovpnflexinit () {
 # value accordingly.
 
 # which user to use in which stage of privileg escalation
-#STAGE0GROUP="nobody"
-#STAGE1GROUP="openvpn"
+#STAGE0USER="nobody"
+#STAGE1USER="openvpn"
 
 # Which name to use for tagging in the logs
 #LOGNAME="ovpnflexscript"
@@ -78,11 +78,12 @@ EOCONF
 	. $BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf
 
 	# set file mode and ownership
-	STAGE1GROUP=${STAGE1GROUP:-"openvpn"}
+	STAGE1USER=${STAGE1USER:-"openvpn"}
 
-	[ $DEBUG -ge 5 ] && echo "DEBUG5: Setting file mode and ownership under \"$BASEDIR$CONFPATH/$TUNNAME\" to root:$STAGE1GROUP. "
+	[ $DEBUG -ge 5 ] && echo "DEBUG5: Setting file mode and ownership under \"$BASEDIR$CONFPATH/$TUNNAME\" to root:$STAGE1USER. "
 
-	chown -R root:"$STAGE1GROUP" "$BASEDIR$CONFPATH/$TUNNAME"
+	# structure must be world readable, because it must be read in stage 0 (probably "nobody")
+	chown -R root:root "$BASEDIR$CONFPATH/$TUNNAME"
 	chmod -R u=rw,g=r,o=r $BASEDIR$CONFPATH/$TUNNAME 
 	find $BASEDIR$CONFPATH/$TUNNAME -type d -exec chmod u=rwx,g=rx,o=rx '{}' ';'
 

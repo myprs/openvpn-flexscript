@@ -26,6 +26,64 @@ logmessage () {
 }
 
 
+getcheckenvironment () {
+
+	# check if variable dev is set and makes sense
+	[ -z "$dev" ] && logmessage "ERROR: variable \"dev\" not set. This script should only called by openvpn. Aborting!" 2
+	ip link show "$dev" >/dev/null 2>&1 ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" does not exist. Aborting!" 3
+	ip tuntap show | grep -E "^$dev: .*" >/dev/null ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" is not a tun/tap device. Aborting!" 4
+
+
+	# read config
+	CONFIGBASE="/etc/ovpnflex"
+	CONFIG=${CONFIG:-"/$CONFIGBASE/$dev/ovpnflex.conf"}
+	[ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
+
+
+	[ -f "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not found. Aborting!" 5
+	[ -r "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not readable. Aborting!" 6
+
+	. "$CONFIG"
+
+	# set own environment
+	TMPFILE="$1"
+
+	## we already have set CONFIG
+	STAGE0USER=${STAGE0USER:-"nobody"}
+	STAGE1USER=${STAGE1USER:-"openvpn"}
+
+	DEF_LOGNAME="ovpnflexscript"
+	LOGNAME=${LOGNAME:-"$DEF_LOGNAME"}
+
+	MAPDEV2LOGNAME=${MAPDEV2LOGNAME:-0}
+
+	# check environment (-> man openvpn)
+
+	## check STAGE0USER
+	# nobody has no rights to query the databases
+	if [ "$USER" != "nobody" ] ; 
+	then
+		getent passwd "$STAGE0USER" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: User \"$STAGE0USER\" in variable STAGE0USER does not exist. Aborting!" 7
+
+		## check STAGE1USER
+		getent passwd "$STAGE1USER" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: User \"$STAGE1USER\" in variable STAGE1USER does not exist. Aborting!" 8
+	fi
+
+	# check MAPDEV2LOGNAME
+	if [ $MAPDEV2LOGNAME -eq 1 ] ;
+	then 
+		if [ "$LOGNAME" = "$DEF_LOGNAME" ] ;
+		then
+			logmessage "ERROR: MAPDEV2LOGNAME = 1 needs LOGNAME to be set differently from default \"$DEF_LOGNAME\". Aborting!" 9
+		else
+			[ -L "$CONFIGBASE/$LOGNAME"  ] || ln -s "$CONFIGBASE/$dev" "$CONFIGBASE/$LOGNAME"
+		fi
+	fi
+
+}
+
+
+
 #####################################################
 #####################################################
 
@@ -64,72 +122,24 @@ while getopts "$OPTRSTRING" NEXTOPT ;
 #echo $OPTIND
 shift $(( $OPTIND-1 ))
 
-# check if variable dev is set and makes sense
-[ -z "$dev" ] && logmessage "ERROR: variable \"dev\" not set. This script should only called by openvpn. Aborting!" 2
-ip link show "$dev" >/dev/null 2>&1 ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" does not exist. Aborting!" 3
-ip tuntap show | grep -E "^$dev: .*" >/dev/null ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" is not a tun/tap device. Aborting!" 4
-
-
-# read config
-CONFIGBASE="/etc/ovpnflex"
-CONFIG=${CONFIG:-"/$CONFIGBASE/$dev/ovpnflex.conf"}
-[ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
-
-
-[ -f "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not found. Aborting!" 5
-[ -r "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not readable. Aborting!" 6
-
-. "$CONFIG"
-
-# set own environment
-TMPFILE="$1"
-
-## we already have set CONFIG
-STAGE0GROUP=${STAGE0GROUP:-"nobody"}
-STAGE1GROUP=${STAGE1GROUP:-"openvpn"}
-
-DEF_LOGNAME="ovpnflexscript"
-LOGNAME=${LOGNAME:-"$DEF_LOGNAME"}
-
-MAPDEV2LOGNAME=${MAPDEV2LOGNAME:-0}
-
-# check environment (-> man openvpn)
-
-## check STAGE0GROUP
-# nobody has no rights to query the databases
-if [ "$USER" != "nobody" ] ; 
-then
-	getent group "$STAGE0GROUP" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: Group \"$STAGE0GROUP\" in variable STAGE0GROUP does not exist. Aborting!" 7
-
-	## check STAGE1GROUP
-	getent group "$STAGE1GROUP" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: Group \"$STAGE1GROUP\" in variable STAGE1GROUP does not exist. Aborting!" 8
-fi
-
-# check MAPDEV2LOGNAME
-if [ $MAPDEV2LOGNAME -eq 1 ] ;
-then 
-	if [ "$LOGNAME" = "$DEF_LOGNAME" ] ;
-	then
-		logmessage "ERROR: MAPDEV2LOGNAME = 1 needs LOGNAME to be set differently from default \"$DEF_LOGNAME\". Aborting!" 9
-	else
-		[ -L "$CONFIGBASE/$LOGNAME"  ] || ln -s "$CONFIGBASE/$dev" "$CONFIGBASE/$LOGNAME"
-	fi
-fi
-
+getcheckenvironment "$1"
 
 # select stage
 [ $DEBUG -ge 4 ] && echo "DEBUG4: USER is \"$USER\""
 
+set -xv
+
 case "$USER" in
-	"$STAGE0GROUP")
-		touch "$TMPFILE" || logmessage "ERROR: Could not create temporaay file \"$TMPFILE\". Aborting!" 10
-		sudo -u "$STAGE1GROUP" "$CALLPATH/$CALLNAME" "$TMPFILE" >"$TMPFILE"
+	"$STAGE0USER")
+		touch "$TMPFILE" || logmessage "ERROR: Could not create temporary file \"$TMPFILE\". Aborting!" 10
+		sudo -u "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$TMPFILE" >"$TMPFILE"
 		RETVAL=$?
 		[ $RETVAL -ne 0 ] && rm "$TMPFILE"
 		exit $RETVAL
 		;;
-	"$STAGE1GROUP")
+	"$STAGE1USER")
 		echo "tobedone: stage1"
+		echo "testoutput " 
 		;;
 	"root")
 		echo "tobedone: stage2"
