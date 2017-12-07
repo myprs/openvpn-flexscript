@@ -17,8 +17,8 @@ logmessage () {
 	# log message
 	logger -t "$LOGNAME" "$1"
 
-	# if interactive then write message on stdout
-	[ -t 0 ] && echo "\n$1"
+	# if interactive then write message on stderr
+	[ -t 0 ] && echo "\n$1" >&2
 
 	# if return value not zero then exit with return value
 	[ $2 -ne 0 ] && exit $2
@@ -131,9 +131,14 @@ set -xv
 
 case "$USER" in
 	"$STAGE0USER")
+		# create openvpn tmpfile
 		touch "$TMPFILE" || logmessage "ERROR: Could not create temporary file \"$TMPFILE\". Aborting!" 10
+
+		# Run script in next stage, redirct all stdout output into tempfile
 		sudo -u "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$TMPFILE" >"$TMPFILE"
 		RETVAL=$?
+
+		# previous scriptlevel did not return 0, remove tmpfile.
 		[ $RETVAL -ne 0 ] && rm "$TMPFILE"
 		exit $RETVAL
 		;;
