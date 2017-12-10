@@ -1,0 +1,26 @@
+# Sudoers file for opvnflex.
+# Edit users to suit your distribution and
+# obenvpn configuration.
+
+User_Alias	OVPNFLEXSTAGE0USER = nobody
+User_Alias	OVPNFLEXSTAGE1USER = openvpn
+
+Defaults:OVPNFLEXSTAGE0USER	!env_reset
+Defaults:OVPNFLEXSTAGE1USER	!env_reset
+
+
+Cmnd_Alias	OVPNFLEXSCRIPT = /usr/local/sbin/ovpnflexscript, \
+				 /home/stefanbs/develop/flexconnect2017/usr/local/sbin/ovpnflexscript
+
+
+Runas_Alias	OVPNFLEXSTAGE1USER = openvpn
+
+# OVPNFLEXSTAGE0USER is allowed to run the script as OVPNFLEXSTAGE1USER
+OVPNFLEXSTAGE0USER	ALL = (OVPNFLEXSTAGE1USER) NOPASSWD: SETENV: OVPNFLEXSCRIPT
+
+# OVPNFLEXSTAGE1USER is allowed to run the script as root
+OVPNFLEXSTAGE1USER	ALL = (root) NOPASSWD: SETENV: OVPNFLEXSCRIPT
+
+# for development
+stefanbs		ALL = (nobody) /bin/bash
+
