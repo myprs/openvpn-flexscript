@@ -39,19 +39,19 @@ ovpnflexinit () {
 	# make tunnel  structure
 
 	[ $DEBUG -ge 5 ] && echo "DEBUG5: Creating structure in confdir under \"$BASEDIR$CONFPATH/$TUNNAME\". "
-	
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/modules/bin" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/modules/bin"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/etc" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/etc"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/up" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/up"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/itls-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/itls-verify"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/ipchange" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/ipchange"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-connect" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-connect"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-up" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-up"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-pre-down" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/route-pre-down"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-disconnect" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/client-disconnect"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/down" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/down"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/learn-address" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/learn-address"
-	[ -d "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/auth-user-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/scriptlevel/auth-user-verify"
+
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/bin" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/bin"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/etc" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/etc"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/up" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/up"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/tls-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/tls-verify"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/ipchange" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/ipchange"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/client-connect" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/client-connect"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/route-up" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/route-up"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/route-pre-down" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/route-pre-down"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/client-disconnect" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/client-disconnect"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/down" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/down"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/learn-address" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/learn-address"
+	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/auth-user-pass-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/auth-user-pass-verify"
 
 	# default config
 	if [ ! -f $BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf ] ;

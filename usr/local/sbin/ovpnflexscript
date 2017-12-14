@@ -6,7 +6,7 @@ DEBUG=${DEBUG:-0}
 
 usage ()  {
 
-echo "usage: $CALLNAME [-c CONFIGFILE] [-l LOGNAME] "
+echo "usage: $CALLNAME [-c CONFIGFILE] [-l LOGTAG] "
 
 
 }
@@ -33,17 +33,32 @@ getcheckenvironment () {
 	ip link show "$dev" >/dev/null 2>&1 ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" does not exist. Aborting!" 3
 	ip tuntap show | grep -E "^$dev: .*" >/dev/null ; [ $? -ne 0 ] && logmessage "ERROR: Interface \"$dev\" is not a tun/tap device. Aborting!" 4
 
+	[ -z "$script_type" ] && logmessage "ERROR: variable \"script_type\" not set. This script should only called by openvpn. Aborting!" 5
 
 	# read config
 	CONFIGBASE="/etc/ovpnflex"
-	CONFIG=${CONFIG:-"/$CONFIGBASE/$dev/ovpnflex.conf"}
+	CONFIGDIR="$CONFIGBASE/$dev"
+	CONFIG=${CONFIG:-"/$CONFIGDIR/ovpnflex.conf"}
 	[ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
-
-
+	
+	
 	[ -f "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not found. Aborting!" 5
 	[ -r "$CONFIG" ] || logmessage "ERROR: Config file \"$CONFIG\" not readable. Aborting!" 6
 
 	. "$CONFIG"
+
+	# set plugin variables
+	PLUGDIR="$CONFIGDIR/plugins"
+	PLUGDIRBIN="$PLUGDIR/bin"
+	PLUGDIRRUNNING="$PLUGDIR/script_type/$script_type"
+	[ -d "$PLUGDIRRUNNING" ] || logmessage "ERROR: Plugindir \"$PLUGDIRRUNNING\" not found. Aborting!" 6
+	PLUGDIRETC="$PLUGDIR/etc"
+	PLUGINPRFX="plug"
+	PLUGASSYFILENAME="plugins.assy"
+	PLUGASSYFILE="$PLUGASSYFILE/$PLUGASSYFILENAME"
+	PLUGASSYLCKNAME="$PLUGASSYNAME.lck"
+	PLUGASSYLCKFILE="$PLUGDIRRUNNING/$PLUGASSYLCKNAME"
+
 
 	# set own environment
 	TMPFILE="$1"
@@ -82,6 +97,63 @@ getcheckenvironment () {
 
 }
 
+
+plugspresent () {
+
+	# are plugins present in this level?
+
+	find $PLUGDIRRUNNING -name "*.$PLUGINPRFX" -type l | grep "/" >/dev/null
+
+	# grep retruns 0 if plugin link was found
+	return $?
+}
+
+
+refresh_plugassy () {
+	
+	# need to refresh the assy file?
+
+	# any plugins present in this level?
+	plugspresent
+	[ $? -ne 0 ] && { logmessage "WARNING: no Plugins active for script type \"$script_type\". Nothing to assemble here" 0 ; return 1 ; }
+
+	# should use flock...
+	[ -f "$PLUGASSYLCKFILE" ] || touch "$PLUGASSYLCKFILE"
+
+	if [ ! -f $PLUGASSYFILE ] ;
+	then 
+		logmessage "INFO: initially creating assembly" 0
+		cat $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
+	else 
+		# assy changedate
+		CDATE_ASSY=`flock -s $PLUGASSYLCKFILE -c "stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1"`
+
+		# last change date of plugs
+		CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX | sort | tail -n 1`
+
+		# last change of plugdir
+		CDATE_PLUGDIR=`stat -c  %Y -L $PLUGDIRRUNNING`
+
+
+		if [ $CDATE_ASSY -lt $CDATE_PLUGDIR -o $CDATE_ASSY -lt $CDATE_PLUGS ] ;
+		then
+			logmessage "INFO: refreshing assembly" 0
+			flock -e $PLUGASSYLCK -c "$PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE"
+		fi
+	fi 
+}
+
+run_plugins () {
+
+	if [ -f $PLUGASSYFILE ] ;
+	then
+		flock -s $PLUGASSYLCKFILE -c \
+			" . $PLUGASSYFILE"
+	else
+		logmessage "INFO: No plugin asembly found." 0
+		return 1
+	fi
+}
 
 
 #####################################################
@@ -139,15 +211,33 @@ case "$USER" in
 		RETVAL=$?
 
 		# previous scriptlevel did not return 0, remove tmpfile.
-		[ $RETVAL -ne 0 ] && rm "$TMPFILE"
+		[ $RETVAL -ne 0 ] && rm -f "$TMPFILE"
 		exit $RETVAL
 		;;
 	"$STAGE1USER")
-		echo "tobedone: stage1"
-		echo "testoutput " 
+
+		# do we have plugins?
+		plugspresent
+		[ $? -ne 0 ] && logmessage "INFO: no plugins in this script_type. Aborting! " 1
+
+		# run the plugins 
+		run_plugins
+		RETVAL=$?
+
+		# Run script in next stage, redirct all stdout output into tempfile
+		sudo -u root -E "$CALLPATH/$CALLNAME" "$TMPFILE"
+		RETVAL=$?
+
+		exit $RETVAL
 		;;
 	"root")
-		echo "tobedone: stage2"
+		# run the plugins 
+		refresh_plugassy
+		run_plugins
+		RETVAL=$?
+
+		# previous scriptlevel did not return 0, remove tmpfile.
+		exit $RETVAL
 		;;
 	*)	
 		logmessage "ERROR: User \"$USER\" is not assigned to any stage. Aborting!" 50
