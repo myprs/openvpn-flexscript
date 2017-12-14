@@ -15,7 +15,7 @@ echo "usage: $CALLNAME [-c CONFIGFILE] [-l LOGTAG] "
 logmessage () {
 
 	# log message
-	logger -t "$LOGNAME" "$1"
+	logger -t "$LOGTAG" "$1"
 
 	# if interactive then write message on stderr
 	[ -t 0 ] && echo "\n$1" >&2
@@ -55,8 +55,8 @@ getcheckenvironment () {
 	PLUGDIRETC="$PLUGDIR/etc"
 	PLUGINPRFX="plug"
 	PLUGASSYFILENAME="plugins.assy"
-	PLUGASSYFILE="$PLUGASSYFILE/$PLUGASSYFILENAME"
-	PLUGASSYLCKNAME="$PLUGASSYNAME.lck"
+	PLUGASSYFILE="$PLUGDIRRUNNING/$PLUGASSYFILENAME"
+	PLUGASSYLCKNAME="$PLUGASSYFILENAME.lck"
 	PLUGASSYLCKFILE="$PLUGDIRRUNNING/$PLUGASSYLCKNAME"
 
 
@@ -67,10 +67,10 @@ getcheckenvironment () {
 	STAGE0USER=${STAGE0USER:-"nobody"}
 	STAGE1USER=${STAGE1USER:-"openvpn"}
 
-	DEF_LOGNAME="ovpnflexscript"
-	LOGNAME=${LOGNAME:-"$DEF_LOGNAME"}
+	DEF_LOGTAG="ovpnflexscript"
+	LOGTAG=${LOGTAG:-"$DEF_LOGTAG"}
 
-	MAPDEV2LOGNAME=${MAPDEV2LOGNAME:-0}
+	MAPDEV2LOGTAG=${MAPDEV2LOGTAG:-0}
 
 	# check environment (-> man openvpn)
 
@@ -84,14 +84,14 @@ getcheckenvironment () {
 		getent passwd "$STAGE1USER" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: User \"$STAGE1USER\" in variable STAGE1USER does not exist. Aborting!" 8
 	fi
 
-	# check MAPDEV2LOGNAME
-	if [ $MAPDEV2LOGNAME -eq 1 ] ;
+	# check MAPDEV2LOGTAG
+	if [ $MAPDEV2LOGTAG -eq 1 ] ;
 	then 
-		if [ "$LOGNAME" = "$DEF_LOGNAME" ] ;
+		if [ "$LOGTAG" = "$DEF_LOGTAG" ] ;
 		then
-			logmessage "ERROR: MAPDEV2LOGNAME = 1 needs LOGNAME to be set differently from default \"$DEF_LOGNAME\". Aborting!" 9
+			logmessage "ERROR: MAPDEV2LOGTAG = 1 needs LOGTAG to be set differently from default \"$DEF_LOGTAG\". Aborting!" 9
 		else
-			[ -L "$CONFIGBASE/$LOGNAME"  ] || ln -s "$CONFIGBASE/$dev" "$CONFIGBASE/$LOGNAME"
+			[ -L "$CONFIGBASE/$LOGTAG"  ] || ln -s "$CONFIGBASE/$dev" "$CONFIGBASE/$LOGTAG"
 		fi
 	fi
 
@@ -118,15 +118,21 @@ refresh_plugassy () {
 	[ $? -ne 0 ] && { logmessage "WARNING: no Plugins active for script type \"$script_type\". Nothing to assemble here" 0 ; return 1 ; }
 
 	# should use flock...
-	[ -f "$PLUGASSYLCKFILE" ] || touch "$PLUGASSYLCKFILE"
+	if [ -f "$PLUGASSYLCKFILE" ] ;
+	then
+	       touch "$PLUGASSYLCKFILE"
+		chown "$STAGE0USER":"$STAGE1USER" "$PLUGASSYLCKFILE"
+		chmod 660 "$PLUGASSYLCKFILE"
+	fi
+
 
 	if [ ! -f $PLUGASSYFILE ] ;
 	then 
 		logmessage "INFO: initially creating assembly" 0
 		cat $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
-	else 
+	else
 		# assy changedate
-		CDATE_ASSY=`flock -s $PLUGASSYLCKFILE -c "stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1"`
+		CDATE_ASSY=`flock -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
 
 		# last change date of plugs
 		CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX | sort | tail -n 1`
@@ -138,20 +144,27 @@ refresh_plugassy () {
 		if [ $CDATE_ASSY -lt $CDATE_PLUGDIR -o $CDATE_ASSY -lt $CDATE_PLUGS ] ;
 		then
 			logmessage "INFO: refreshing assembly" 0
-			flock -e $PLUGASSYLCK -c "$PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE"
+			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
+			chown "$STAGE0USER":"$STAGE1USER" "$PLUGASSYFILE"
+			chmod 750 "$PLUGASSYFILE"
 		fi
 	fi 
+
 }
 
 run_plugins () {
 
 	if [ -f $PLUGASSYFILE ] ;
 	then
-		flock -s $PLUGASSYLCKFILE -c \
-			" . $PLUGASSYFILE"
+		PLUGRET=0
+		(
+			flock -w 45  9 || return 99
+			 . $PLUGASSYFILE
+		) 9>"$PLUGASSYLCKFILE"
+		return $PLUGRET
 	else
 		logmessage "INFO: No plugin asembly found." 0
-		return 1
+		return 1022
 	fi
 }
 
@@ -181,8 +194,8 @@ while getopts "$OPTRSTRING" NEXTOPT ;
                         CONFIG="$OPTARG"
                         ;;
                 "l")
-			[ -n "$LOGNAME" ] && logmessage "ERROR: Parameter -l must only be used once!. Aborting!" 1
-                        LOGNAME="$OPTARG"
+			[ -n "$LOGTAG" ] && logmessage "ERROR: Parameter -l must only be used once!. Aborting!" 1
+                        LOGTAG="$OPTARG"
                         ;;
                 *)
                         usage
@@ -199,7 +212,6 @@ getcheckenvironment "$1"
 # select stage
 [ $DEBUG -ge 4 ] && echo "DEBUG4: USER is \"$USER\""
 
-set -xv
 
 case "$USER" in
 	"$STAGE0USER")
@@ -222,12 +234,15 @@ case "$USER" in
 
 		# run the plugins 
 		run_plugins
-		RETVAL=$?
+		PLUGRETVAL=$?
+		[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
 
-		# Run script in next stage, redirct all stdout output into tempfile
+		# Run script in next stage
 		sudo -u root -E "$CALLPATH/$CALLNAME" "$TMPFILE"
 		RETVAL=$?
 
+		# fail if we did not run our own stage plugins due to missing assembly
+		[ $PLUGRETVAL -eq 1022 ] && return 1022
 		exit $RETVAL
 		;;
 	"root")

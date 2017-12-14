@@ -67,10 +67,10 @@ ovpnflexinit () {
 #STAGE1USER="openvpn"
 
 # Which name to use for tagging in the logs
-#LOGNAME="ovpnflexscript"
+#LOGTAG="ovpnflexscript"
 
-#use LOGNAME instead of device name for upmost config directory (actually creates a link)
-#MAPDEV2LOGNAME=0
+#use LOGTAG instead of device name for upmost config directory (actually creates a link)
+#MAPDEV2LOGTAG=0
 EOCONF
 
 	fi
