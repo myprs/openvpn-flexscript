@@ -1,0 +1,46 @@
+
+# rename next line
+plugin_template () {
+
+	run_user_stage1 () {
+
+		case "$script_type" in
+			# add your code here
+			*)
+				logmessage "WARNING: undefined script_type in plugin on stage1." 0
+			;;
+		esac
+	}
+
+
+	run_user_root () {
+
+		case "$script_type" in
+			# add your code here
+			*)
+				logmessage "WARNING: undefined script_type in plugin on stage root." 0
+			;;
+		esac
+	}
+
+
+
+
+	case "$USER" in
+		"$STAGE1USER")
+			run_user_stage1
+		;;
+		"root")
+			run_user_root
+		;;
+		*)
+			logmessage "ERROR: plugin called with unknown user \"$USER\"" 0
+			PLUGRET=999
+		;;
+	esac
+
+}
+
+# rename next line
+plugin_template
+
