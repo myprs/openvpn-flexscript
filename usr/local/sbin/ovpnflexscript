@@ -15,7 +15,7 @@ echo "usage: $CALLNAME [-c CONFIGFILE] [-l LOGTAG] "
 logmessage () {
 
 	# log message
-	logger -t "$LOGTAG" "$1"
+	logger -t "$LOGTAG#$dev@$script_type&$common_name" "$1"
 
 	# if interactive then write message on stderr
 	[ -t 0 ] && echo "\n$1" >&2
