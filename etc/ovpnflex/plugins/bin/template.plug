@@ -1,10 +1,12 @@
 
+#EDIT!
 # rename next line
 plugin_template () {
 
 	run_user_stage1 () {
 
 		case "$script_type" in
+			#EDIT!
 			# add your code here
 			*)
 				logmessage "WARNING: undefined script_type in plugin on stage1." 0
@@ -16,6 +18,7 @@ plugin_template () {
 	run_user_root () {
 
 		case "$script_type" in
+			#EDIT!
 			# add your code here
 			*)
 				logmessage "WARNING: undefined script_type in plugin on stage root." 0
@@ -41,6 +44,7 @@ plugin_template () {
 
 }
 
+#EDIT!
 # rename next line
 plugin_template
 
