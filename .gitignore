@@ -1,1 +1,2 @@
-usr/local/sbin/ovpnflexctl
+source/usr/sbin/ovpnflexctl
+*.deb

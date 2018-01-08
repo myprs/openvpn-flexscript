@@ -21,7 +21,7 @@ openvpn-flexinit () {
 	# Standard BASEDIR may be overriden for development purposes
 	[ $DEBUG -ge 6 ] && echo "DEBUG6: Basedir is \"$BASEDIR\""
 
-	BINPATH="usr/local/sbin"
+	BINPATH="usr/sbin"
 	CONFPATH="etc/openvpn-flex"
 
 	# check env
