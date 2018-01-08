@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo "Creating user openvpn"
+useradd --system --user-group --create-home openvpn 
+passwd -l openvpn || exit $?
+
+
+# run script init
+echo "run init script"
+/usr/sbin/openvpn-flexinit || exit $?
+
+echo "setting ownership on configuration directory"
+chown -R root:openvpn /etc/openvpn-flexscript
+
+echo "setting ownership on openvpn-flexscript"
+chown root:openvpn /usr/sbin/openvpn-flexscript
+
+

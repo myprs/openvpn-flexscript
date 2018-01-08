@@ -1,2 +1,3 @@
 source/usr/sbin/ovpnflexctl
 *.deb
+*.tgz

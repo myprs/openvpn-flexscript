@@ -1,0 +1,8 @@
+#!/bin/bash
+
+userdel -f openvpn 
+
+exit 0
+
+
+

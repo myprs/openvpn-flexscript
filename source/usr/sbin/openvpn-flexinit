@@ -4,7 +4,7 @@
 DEBUG=${DEBUG:-0}
 
 
-usage_openvpn-flexinit ()  {
+usage ()  {
 
 echo "usage: todo"
 
@@ -12,8 +12,7 @@ echo "usage: todo"
 }
 
 
-openvpn-flexinit () {
-
+openvpnflexinit () {
 
 	[ $DEBUG -ge 2 ] && echo "DEBUG2: Entering function \"openvpn-flexinit\""
 
@@ -22,10 +21,16 @@ openvpn-flexinit () {
 	[ $DEBUG -ge 6 ] && echo "DEBUG6: Basedir is \"$BASEDIR\""
 
 	BINPATH="usr/sbin"
-	CONFPATH="etc/openvpn-flex"
+	CONFPATH="etc/openvpn-flexscript"
 
 	# check env
-	TUNNAME=${1:-"tun0"}
+	
+	if [ -n "$1" ] ;
+	then
+		[ -d /sys/class/net/"$1" ] || { echo "ERROR: no such Interface: \"$1\". Aborting" ; exit 1 ; } 
+	fi
+
+	TUNNAME=${1:-"tun.template"}
 	[ $DEBUG -ge 6 ] && echo "DEBUG6: Tunname is \"$TUNNAME\""
 
 	## do we have root privileges?
@@ -90,6 +95,8 @@ EOCONF
 
 	[ $DEBUG -ge 2 ] && echo "DEBUG2: Leaving function \"openvpn-flexinit\""
 
+	return 0
+
 }
 
 
@@ -104,7 +111,7 @@ case "$CALLNAME" in
 		echo "todo: openflexctl"
 		;;
 	"openvpn-flexinit")
-		openvpn-flexinit "$1"
+		openvpnflexinit "$1"
 		;;
 	*)	
 		echo "Error: You cannot link openvpn-flexinit as \"$CALLNAME\". Aborting."

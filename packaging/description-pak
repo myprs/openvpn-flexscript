@@ -1,0 +1,6 @@
+openvpn-flexscript is a framework to use as a user script for openvpn hooks.
+OpenVPN supports user defined scripts, which can be called
+on specific events in openvpn. This is an advanced scripting framework,
+dealing with some of the complexity in larger deployments.
+You need to extend the framework with your own functionality
+by creating "plugins" (scripted in /bin/sh syntax). 
