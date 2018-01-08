@@ -4,7 +4,7 @@
 DEBUG=${DEBUG:-0}
 
 
-usage_ovpnflexinit ()  {
+usage_openvpn-flexinit ()  {
 
 echo "usage: todo"
 
@@ -12,17 +12,17 @@ echo "usage: todo"
 }
 
 
-ovpnflexinit () {
+openvpn-flexinit () {
 
 
-	[ $DEBUG -ge 2 ] && echo "DEBUG2: Entering function \"ovpnflexinit\""
+	[ $DEBUG -ge 2 ] && echo "DEBUG2: Entering function \"openvpn-flexinit\""
 
 	BASEDIR=${INITDEVBASEDIR:-"/"}
 	# Standard BASEDIR may be overriden for development purposes
 	[ $DEBUG -ge 6 ] && echo "DEBUG6: Basedir is \"$BASEDIR\""
 
 	BINPATH="usr/local/sbin"
-	CONFPATH="etc/ovpnflex"
+	CONFPATH="etc/openvpn-flex"
 
 	# check env
 	TUNNAME=${1:-"tun0"}
@@ -34,7 +34,7 @@ ovpnflexinit () {
 	# link scripts
 
 	[ $DEBUG -ge 5 ] && echo "DEBUG5: Creating links in Bindir. "
-	[ -L "$BASEDIR$BINPATH/ovpnflexctl" ] || ln -s "$BASEDIR$BINPATH/$CALLNAME" "$BASEDIR$BINPATH/ovpnflexctl" 
+	[ -L "$BASEDIR$BINPATH/openvpn-flexctl" ] || ln -s "$BASEDIR$BINPATH/$CALLNAME" "$BASEDIR$BINPATH/openvpn-flexctl" 
 
 	# make tunnel  structure
 
@@ -54,9 +54,9 @@ ovpnflexinit () {
 	[ -d "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/auth-user-pass-verify" ] || mkdir -p "$BASEDIR$CONFPATH/$TUNNAME/plugins/script_type/auth-user-pass-verify"
 
 	# default config
-	if [ ! -f $BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf ] ;
+	if [ ! -f $BASEDIR$CONFPATH/$TUNNAME/openvpn-flex.conf ] ;
 	then
-		cat >$BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf <<EOCONF
+		cat >$BASEDIR$CONFPATH/$TUNNAME/openvpn-flex.conf <<EOCONF
 # This is a default config. All possible parameters 
 # are listed below and are shown with their default values.
 # To use different values uncomment the line and edit the
@@ -67,7 +67,7 @@ ovpnflexinit () {
 #STAGE1USER="openvpn"
 
 # Which name to use for tagging in the logs
-#LOGTAG="ovpnflexscript"
+#LOGTAG="openvpn-flexscript"
 
 #use LOGTAG instead of device name for upmost config directory (actually creates a link)
 #MAPDEV2LOGTAG=0
@@ -75,7 +75,7 @@ EOCONF
 
 	fi
 
-	. $BASEDIR$CONFPATH/$TUNNAME/ovpnflex.conf
+	. $BASEDIR$CONFPATH/$TUNNAME/openvpn-flex.conf
 
 	# set file mode and ownership
 	STAGE1USER=${STAGE1USER:-"openvpn"}
@@ -88,7 +88,7 @@ EOCONF
 	find $BASEDIR$CONFPATH/$TUNNAME -type d -exec chmod u=rwx,g=rx,o=rx '{}' ';'
 
 
-	[ $DEBUG -ge 2 ] && echo "DEBUG2: Leaving function \"ovpnflexinit\""
+	[ $DEBUG -ge 2 ] && echo "DEBUG2: Leaving function \"openvpn-flexinit\""
 
 }
 
@@ -100,14 +100,14 @@ CALLNAME="`basename "$0"`"
 
 
 case "$CALLNAME" in
-	"ovpnflexctl")
+	"openvpn-flexctl")
 		echo "todo: openflexctl"
 		;;
-	"ovpnflexinit")
-		ovpnflexinit "$1"
+	"openvpn-flexinit")
+		openvpn-flexinit "$1"
 		;;
 	*)	
-		echo "Error: You cannot link ovpnflexinit as \"$CALLNAME\". Aborting."
+		echo "Error: You cannot link openvpn-flexinit as \"$CALLNAME\". Aborting."
 		usage
 		;;
 esac

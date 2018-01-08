@@ -36,9 +36,9 @@ getcheckenvironment () {
 	[ -z "$script_type" ] && logmessage "ERROR: variable \"script_type\" not set. This script should only called by openvpn. Aborting!" 5
 
 	# read config
-	CONFIGBASE="/etc/ovpnflex"
+	CONFIGBASE="/etc/openvpn-flex"
 	CONFIGDIR="$CONFIGBASE/$dev"
-	CONFIG=${CONFIG:-"/$CONFIGDIR/ovpnflex.conf"}
+	CONFIG=${CONFIG:-"/$CONFIGDIR/openvpn-flex.conf"}
 	[ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
 	
 	
@@ -67,7 +67,7 @@ getcheckenvironment () {
 	STAGE0USER=${STAGE0USER:-"nobody"}
 	STAGE1USER=${STAGE1USER:-"openvpn"}
 
-	DEF_LOGTAG="ovpnflexscript"
+	DEF_LOGTAG="openvpn-flexscript"
 	LOGTAG=${LOGTAG:-"$DEF_LOGTAG"}
 
 	MAPDEV2LOGTAG=${MAPDEV2LOGTAG:-0}
