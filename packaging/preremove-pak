@@ -1,0 +1,12 @@
+#!/bin/bash
+
+INSTDIR="/usr/sbin"
+
+# clean up the links from openvpn-flexinit
+
+[ -h "$INSTDIR"/openvpn-flexctl ] && rm "$INSTDIR"/openvpn-flexctl
+
+exit 0
+
+
+
