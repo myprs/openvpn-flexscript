@@ -1,0 +1,48 @@
+# Make changes at all occurences of the string "EDIT!"
+
+
+# Define the module! 
+# Function name must be unique. Leave the prefix to prevent name collisions with 
+# buildtin functions.
+#
+#EDIT!
+# rename next line
+module_template () {
+
+
+	# HINTS
+	# There are a couple of variables preefined, e.g.
+	#   PLUGDIRETC defaults to /etc/openvpn-flexscript/$DEV/pluins/etc
+	#    - place your module config here, etc lsit of CN for the module to read.
+
+	# Add your code here. 
+	# e.g. use a module to seach the CN of client certificate in config file and set a shell variable accordingly (MAILSERVERACCESS=1)
+	# The you can exit in the plugin, if MAILSERVERACCESS does not equal 1 or is unset.
+	# See the comments in the skeleton plugin, to give you an idea.
+	#EDIT!
+
+
+	# if you want to implement functionality dependent on the user, we ae running under, use the code below
+	#case "$USER" in
+	#	"$STAGE1USER")
+	#		# you need to define these functions locally (within this module!)
+	#		run_user_stage1
+	#	;;
+	#	"root")
+	#		# you need to define these functions locally (within this module!)
+	#		run_user_root
+	#	;;
+	#	*)
+	#		logmessage "ERROR: module called with unknown user \"$USER\"" 0
+	#		PLUGRET=999
+	#	;;
+	#esac
+
+}
+
+
+# Call the module to run the code
+#EDIT!
+# rename next line to the function name used above.
+module_template
+

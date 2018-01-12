@@ -1,3 +1,4 @@
 source/usr/sbin/ovpnflexctl
 *.deb
 *.tgz
+*.swp

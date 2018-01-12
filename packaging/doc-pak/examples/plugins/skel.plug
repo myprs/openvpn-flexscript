@@ -1,4 +1,10 @@
+# Make changes at all occurences of the string "EDIT!"
 
+
+# Define the plugin! 
+# Function name must be unique. Leave the prefix to prevent name collisions with 
+# buildtin functions.
+#
 #EDIT!
 # rename next line
 plugin_template () {
@@ -6,6 +12,7 @@ plugin_template () {
 	run_user_stage1 () {
 
 		case "$script_type" in
+			# define functionality for different openvpn script_types
 			#EDIT!
 			# add your code here
 			*)
@@ -18,6 +25,7 @@ plugin_template () {
 	run_user_root () {
 
 		case "$script_type" in
+			# define functionality for different openvpn script_types
 			#EDIT!
 			# add your code here
 			*)
@@ -27,9 +35,12 @@ plugin_template () {
 	}
 
 
-	#EDIT!
 	# this is the place to add code to check if this plugin needs to be run for this user
-	# add your code here
+	# add your code here. 
+	# e.g. use a module to seach the CN of client certificate in config file and set a shell vatiable accordingly (MAILSERVERACCESS=1)
+	# The you can exit here if MAILSERVERACCESS does not equal 1 or is unset.
+	# If the test does not exit then open/ close the firewall for the client IP on conect/disconect script type.
+	#EDIT!
 
 
 	case "$USER" in
@@ -47,7 +58,9 @@ plugin_template () {
 
 }
 
+
+# Call the plugin to run the code
 #EDIT!
-# rename next line
+# rename next line to the function name used above.
 plugin_template
 
