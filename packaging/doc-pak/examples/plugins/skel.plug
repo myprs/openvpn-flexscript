@@ -27,6 +27,9 @@ plugin_template () {
 	}
 
 
+	#EDIT!
+	# this is the place to add code to check if this plugin needs to be run for this user
+	# add your code here
 
 
 	case "$USER" in
