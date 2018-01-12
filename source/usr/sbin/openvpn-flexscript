@@ -38,7 +38,7 @@ getcheckenvironment () {
 	# read config
 	CONFIGBASE="/etc/openvpn-flex"
 	CONFIGDIR="$CONFIGBASE/$dev"
-	CONFIG=${CONFIG:-"/$CONFIGDIR/openvpn-flex.conf"}
+	CONFIG=${CONFIG:-"$CONFIGDIR/openvpn-flex.conf"}
 	[ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
 	
 	
