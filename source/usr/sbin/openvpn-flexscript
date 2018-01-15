@@ -61,7 +61,7 @@ getcheckenvironment () {
 
 
 	# set own environment
-	TMPFILE="$1"
+	OVPNTMPFILE="$1"
 
 	# if user variable is not set, set it.
 	[ -z "$USER" ] && USER=`whoami`
@@ -219,14 +219,14 @@ getcheckenvironment "$1"
 case "$USER" in
 	"$STAGE0USER")
 		# create openvpn tmpfile
-		touch "$TMPFILE" || logmessage "ERROR: Could not create temporary file \"$TMPFILE\". Aborting!" 10
+		touch "$OVPNTMPFILE" || logmessage "ERROR: Could not create temporary file \"$OVPNTMPFILE\". Aborting!" 10
 
 		# Run script in next stage, redirct all stdout output into tempfile
-		sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$TMPFILE" >"$TMPFILE"
+		sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE" >"$OVPNTMPFILE"
 		RETVAL=$?
 
 		# previous scriptlevel did not return 0, remove tmpfile.
-		[ $RETVAL -ne 0 ] && rm -f "$TMPFILE"
+		[ $RETVAL -ne 0 ] && rm -f "$OVPNTMPFILE"
 		exit $RETVAL
 		;;
 	"$STAGE1USER")
@@ -241,7 +241,7 @@ case "$USER" in
 		[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
 
 		# Run script in next stage
-		sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$TMPFILE"
+		sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE"
 		RETVAL=$?
 
 		# fail if we did not run our own stage plugins due to missing assembly
