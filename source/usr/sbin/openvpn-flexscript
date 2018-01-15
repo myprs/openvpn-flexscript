@@ -36,7 +36,7 @@ getcheckenvironment () {
 	[ -z "$script_type" ] && logmessage "ERROR: variable \"script_type\" not set. This script should only called by openvpn. Aborting!" 5
 
 	# read config
-	CONFIGBASE="/etc/openvpn-flex"
+	CONFIGBASE="/etc/openvpn-flexscript"
 	CONFIGDIR="$CONFIGBASE/$dev"
 	CONFIG=${CONFIG:-"$CONFIGDIR/openvpn-flex.conf"}
 	[ $DEBUG -ge 4 ] && echo "DEBUG4: CONFIG set to \"$CONFIG\""
@@ -62,6 +62,9 @@ getcheckenvironment () {
 
 	# set own environment
 	TMPFILE="$1"
+
+	# if user variable is not set, set it.
+	[ -z "$USER" ] && USER=`whoami`
 
 	## we already have set CONFIG
 	STAGE0USER=${STAGE0USER:-"nobody"}
@@ -219,7 +222,7 @@ case "$USER" in
 		touch "$TMPFILE" || logmessage "ERROR: Could not create temporary file \"$TMPFILE\". Aborting!" 10
 
 		# Run script in next stage, redirct all stdout output into tempfile
-		sudo -u "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$TMPFILE" >"$TMPFILE"
+		sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$TMPFILE" >"$TMPFILE"
 		RETVAL=$?
 
 		# previous scriptlevel did not return 0, remove tmpfile.
@@ -238,7 +241,7 @@ case "$USER" in
 		[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
 
 		# Run script in next stage
-		sudo -u root -E "$CALLPATH/$CALLNAME" "$TMPFILE"
+		sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$TMPFILE"
 		RETVAL=$?
 
 		# fail if we did not run our own stage plugins due to missing assembly
