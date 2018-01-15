@@ -262,12 +262,22 @@ getcheckenvironment "$1"
 
 case "$USER" in
 	"$STAGE0USER")
-		# create openvpn tmpfile
-		touch "$OVPNTMPFILE" || logmessage "ERROR: Could not create temporary file \"$OVPNTMPFILE\". Aborting!" 10
+		
+		if [ -z "$OVPNTMPFILE" ] ;
+		then 
+			# no tempfile requested 
 
-		# Run script in next stage, redirct all stdout output into tempfile
-		sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE" >"$OVPNTMPFILE"
-		RETVAL=$?
+			# Run script in next stage
+			sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE" 
+			RETVAL=$?
+		else 
+			# create openvpn tmpfile, as requested
+			touch "$OVPNTMPFILE" || logmessage "ERROR: Could not create temporary file \"$OVPNTMPFILE\". Aborting!" 10
+
+			# Run script in next stage, redirct all stdout output into tempfile
+			sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE" >"$OVPNTMPFILE"
+			RETVAL=$?
+		fi
 
 		# previous scriptlevel did not return 0, remove tmpfile.
 		[ $RETVAL -ne 0 ] && rm -f "$OVPNTMPFILE"
