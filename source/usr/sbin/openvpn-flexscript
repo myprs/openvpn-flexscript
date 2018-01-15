@@ -14,14 +14,53 @@ echo "usage: $CALLNAME [-c CONFIGFILE] [-l LOGTAG] "
 
 logmessage () {
 
+	# $1 must be the message
+	[ -z "$1" ] && exit 999
+	LOGMESSAGE="$1"
+
+	# $2 might be the exitcode, defaults to0
+	EXITCODE=${2:-0}
+	#MESSAGEID="3ceed9d62892402e91aaf50af2dced3c"
+	MESSAGEID=`printf "3ceed9d62892402e91aaf50af2dc%04x" $EXITCODE `
+
+	# $3 might be the severity, defaults to 0
+	# must be 0..7 (emerg..debug) see man syslog -> level 
+	# default is 1 (info)
+	if [ $EXITCODE -eq 0 ] ; then
+		# if exitcode = 0 then severity defaults to 1 (info)
+		SEVERITY=${3:-1}
+	else
+		# if exitcode <> 0 then severity defaults to 4 (error)
+		SEVERITY=${3:-4}
+	fi
+
 	# log message
-	logger -t "$LOGTAG#$dev@$script_type&$common_name" "$1"
+	case $LOG2SYSTEMD 
+		0)
+			#log to syslog
+			logger -t "$LOGTAG" "#$dev@$script_type&$common_name: $LOGMESSAGE"
+			;;
+		1)
+			# log to systemd
+			logger --journald <<eolog
+MESSAGE_ID=$MESSAGEID
+MESSAGE=$LOGMESSAGE
+ERRNO=$EXITCODE
+PRIORITY=$SEVERITY
+SYSLOG_IDENTIFIER="$LOGTAG"
+eolog
+
+			;;
+		*)
+			# error
+			;;
+	esac
 
 	# if interactive then write message on stderr
-	[ -t 0 ] && echo "\n$1" >&2
+	[ -t 0 ] && echo "\n$LOGMESSAGE" >&2
 
 	# if return value not zero then exit with return value
-	[ $2 -ne 0 ] && exit $2
+	[ $EXITCODE -ne 0 ] && exit $EXITCODE
 
 }
 
@@ -70,9 +109,14 @@ getcheckenvironment () {
 	STAGE0USER=${STAGE0USER:-"nobody"}
 	STAGE1USER=${STAGE1USER:-"openvpn"}
 
+	# logging
+	LOG2SYSTEMD=${LOGTO:-1} 
 	DEF_LOGTAG="openvpn-flexscript"
 	LOGTAG=${LOGTAG:-"$DEF_LOGTAG"}
 
+
+	# create a softlink in the confdir, mapping the devie directory to the logtag
+	# 0 no, 1=yes
 	MAPDEV2LOGTAG=${MAPDEV2LOGTAG:-0}
 
 	# check environment (-> man openvpn)

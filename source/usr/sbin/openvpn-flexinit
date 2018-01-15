@@ -71,6 +71,11 @@ openvpnflexinit () {
 #STAGE0USER="nobody"
 #STAGE1USER="openvpn"
 
+# which system to use for logging
+# 0 = syslog
+# 1 = systemd
+#LOG2SYSTEMD=1
+
 # Which name to use for tagging in the logs
 #LOGTAG="openvpn-flexscript"
 
