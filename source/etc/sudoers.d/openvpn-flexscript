@@ -5,6 +5,11 @@
 User_Alias	OVPNFLEXSTAGE0USER = nobody
 User_Alias	OVPNFLEXSTAGE1USER = openvpn
 
+# user specific defaults
+Defaults:OVPNFLEXSTAGE0USER lecture = never
+Defaults:OVPNFLEXSTAGE1USER lecture = never
+
+
 # inherit openvpn environment!
 # All staticly named variables are added to env-keep. If you need to work on 
 # non statically named variables (see the commented lines in list), you need to
@@ -75,15 +80,15 @@ Defaults!OVPNFLEXSCRIPT env_keep += "X509_1_C"
 
 
 
-Cmnd_Alias	OVPNFLEXSCRIPT = /usr/local/sbin/ovpnflexscript
+Cmnd_Alias	OVPNFLEXSCRIPT = /usr/sbin/openvpn-flexscript
 
 
 Runas_Alias	OVPNFLEXSTAGE1USER = openvpn
 
 # OVPNFLEXSTAGE0USER is allowed to run the script as OVPNFLEXSTAGE1USER
-OVPNFLEXSTAGE0USER	ALL = (OVPNFLEXSTAGE1USER) NOPASSWD: SETENV: OVPNFLEXSCRIPT
+OVPNFLEXSTAGE0USER	ALL = (OVPNFLEXSTAGE1USER) NOPASSWD:SETENV: OVPNFLEXSCRIPT
 
 # OVPNFLEXSTAGE1USER is allowed to run the script as root
-OVPNFLEXSTAGE1USER	ALL = (root) NOPASSWD: SETENV: OVPNFLEXSCRIPT
+OVPNFLEXSTAGE1USER	ALL = (root) NOPASSWD:SETENV: OVPNFLEXSCRIPT
 
 
