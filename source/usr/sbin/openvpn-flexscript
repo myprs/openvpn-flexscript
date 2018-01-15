@@ -35,7 +35,7 @@ logmessage () {
 	fi
 
 	# log message
-	case $LOG2SYSTEMD 
+	case $LOG2SYSTEMD in
 		0)
 			#log to syslog
 			logger -t "$LOGTAG" "#$dev@$script_type&$common_name: $LOGMESSAGE"
@@ -168,7 +168,7 @@ refresh_plugassy () {
 	if [ -f "$PLUGASSYLCKFILE" ] ;
 	then
 	       touch "$PLUGASSYLCKFILE"
-		chown "$STAGE0USER":"$STAGE1USER" "$PLUGASSYLCKFILE"
+		chown root:"$STAGE1USER" "$PLUGASSYLCKFILE"
 		chmod 660 "$PLUGASSYLCKFILE"
 	fi
 
@@ -192,7 +192,7 @@ refresh_plugassy () {
 		then
 			logmessage "INFO: refreshing assembly" 0
 			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
-			chown "$STAGE0USER":"$STAGE1USER" "$PLUGASSYFILE"
+			chown root:"$STAGE1USER" "$PLUGASSYFILE"
 			chmod 750 "$PLUGASSYFILE"
 		fi
 	fi 
