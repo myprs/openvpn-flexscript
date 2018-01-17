@@ -164,12 +164,14 @@ refresh_plugassy () {
 	plugspresent
 	[ $? -ne 0 ] && { logmessage "WARNING: no Plugins active for script type \"$script_type\". Nothing to assemble here" 0 ; return 1 ; }
 
-	# should use flock...
+	# use flock...
 	if [ -f "$PLUGASSYLCKFILE" ] ;
 	then
-	       touch "$PLUGASSYLCKFILE"
+		touch "$PLUGASSYLCKFILE"
 		chown root:"$STAGE1USER" "$PLUGASSYLCKFILE"
 		chmod 660 "$PLUGASSYLCKFILE"
+		chown root:"$STAGE1USER" `dirname "$PLUGASSYLCKFILE"`
+		chmod 770 `dirname "$PLUGASSYLCKFILE"`
 	fi
 
 
@@ -177,6 +179,8 @@ refresh_plugassy () {
 	then 
 		logmessage "INFO: initially creating assembly" 0
 		cat $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
+		chown root:"$STAGE1USER" "$PLUGASSYFILE"
+		chmod 750 "$PLUGASSYFILE"
 	else
 		# assy changedate
 		CDATE_ASSY=`flock -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
