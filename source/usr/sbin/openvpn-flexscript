@@ -93,6 +93,8 @@ getcheckenvironment () {
 	[ -d "$PLUGDIRRUNNING" ] || logmessage "ERROR: Plugindir \"$PLUGDIRRUNNING\" not found. Aborting!" 6
 	PLUGDIRETC="$PLUGDIR/etc"
 	PLUGINPRFX="plug"
+	MODULEDIRETC="$PLUGDIR/etc"
+	MODULEPRFX="module"
 	PLUGASSYFILENAME="plugins.assy"
 	PLUGASSYFILE="$PLUGDIRRUNNING/$PLUGASSYFILENAME"
 	PLUGASSYLCKNAME="$PLUGASSYFILENAME.lck"
@@ -118,6 +120,8 @@ getcheckenvironment () {
 	# create a softlink in the confdir, mapping the devie directory to the logtag
 	# 0 no, 1=yes
 	MAPDEV2LOGTAG=${MAPDEV2LOGTAG:-0}
+
+	local NEEDROOT=${NEEDROOT:-1}
 
 	# check environment (-> man openvpn)
 
@@ -149,7 +153,13 @@ plugspresent () {
 
 	# are plugins present in this level?
 
+	# search plugin links 
 	find $PLUGDIRRUNNING -name "*.$PLUGINPRFX" -type l | grep "/" >/dev/null
+	local RETVAL=$?
+
+	#search module links
+	find $PLUGDIRRUNNING -name "*.$MODULEPRFX" -type l | grep "/" >/dev/null
+	RETVAL=$( $RETVAL + $? )
 
 	# grep retruns 0 if plugin link was found
 	return $?
@@ -162,7 +172,7 @@ check_plugassy () {
 	CDATE_ASSY=`flock -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
 
 	# last change date of plugs
-	CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX | sort | tail -n 1`
+	CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX $PLUGDIRRUNNING/*.$MODULEPRFX | sort | tail -n 1`
 
 	# last change of plugdir
 	CDATE_PLUGDIR=`stat -c  %Y -L $PLUGDIRRUNNING`
@@ -201,7 +211,7 @@ refresh_plugassy () {
 	if [ ! -f $PLUGASSYFILE ] ;
 	then 
 		logmessage "INFO: initially creating assembly" 0
-		cat $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
+		cat $PLUGDIRRUNNING/*.$MODULEPRFX $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
 		chown root:"$STAGE1USER" "$PLUGASSYFILE"
 		chmod 750 "$PLUGASSYFILE"
 		return 1
@@ -210,7 +220,7 @@ refresh_plugassy () {
 		if [ $? -eq 1 ] ;
 		then
 			logmessage "INFO: refreshing assembly" 0
-			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
+			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$MODULEPRFX "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
 			chown root:"$STAGE1USER" "$PLUGASSYFILE"
 			chmod 750 "$PLUGASSYFILE"
 			return 2
@@ -318,8 +328,6 @@ case "$USER" in
 			local DECONFIGURE=0
 		fi
 
-
-		local NEEDROOT=${NEEDROOT:-1}
 
 		check_plugassy
 		local PLUGASSY_NEEDS_UPDATE=$?
