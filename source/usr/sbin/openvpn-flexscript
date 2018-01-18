@@ -307,9 +307,18 @@ case "$USER" in
 		plugspresent
 		[ $? -ne 0 ] && logmessage "INFO: no plugins in this script_type. Aborting! " 1
 
+		# are we deconfiguring?
+		if [ $script_type = "down" ] || [ $script_type = "client-disconnect" ] || [ $script_type = "ipchange" ] ;
+		then
+			local DECONFIGURE=1
+		else
+			local DECONFIGURE=0
+		fi
+
+
 		check_plugassy
 		# check if we refuse to configure (only on "configuration creation"; on configuration destruction we need to run anyway to deconfigure as much as possible)
-		if [ $? -eq 0 ] ;
+		if [ $? -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
 		then
 			# no update needed run the plugins 
 			run_plugins
