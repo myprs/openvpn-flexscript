@@ -204,6 +204,7 @@ refresh_plugassy () {
 		cat $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
 		chown root:"$STAGE1USER" "$PLUGASSYFILE"
 		chmod 750 "$PLUGASSYFILE"
+		return 1
 	else
 		check_plugassy
 		if [ $? -eq 1 ] ;
@@ -212,8 +213,10 @@ refresh_plugassy () {
 			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
 			chown root:"$STAGE1USER" "$PLUGASSYFILE"
 			chmod 750 "$PLUGASSYFILE"
+			return 2
 		fi
 	fi 
+	return 0
 
 }
 
@@ -320,7 +323,7 @@ case "$USER" in
 		# check if we refuse to configure (only on "configuration creation"; on configuration destruction we need to run anyway to deconfigure as much as possible)
 		if [ $? -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
 		then
-			# no update needed run the plugins 
+			# run the plugins 
 			run_plugins
 			PLUGRETVAL=$?
 			[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
@@ -342,13 +345,28 @@ case "$USER" in
 		exit $RETVAL
 		;;
 	"root")
+		# are we deconfiguring?
+		if [ $script_type = "down" ] || [ $script_type = "client-disconnect" ] || [ $script_type = "ipchange" ] ;
+		then
+			local DECONFIGURE=1
+		else
+			local DECONFIGURE=0
+		fi
+
 		# run the plugins 
 		refresh_plugassy
-		run_plugins
-		RETVAL=$?
 
-		# previous scriptlevel did not return 0, remove tmpfile.
-		exit $RETVAL
+		if [ $? -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
+		then
+			# we need to run the plugins
+			run_plugins
+			# previous scriptlevel did not return 0, remove tmpfile.
+			exit $?
+		else
+			exit 89
+		fi
+
+
 		;;
 	*)	
 		logmessage "ERROR: User \"$USER\" is not assigned to any stage. Aborting!" 50
