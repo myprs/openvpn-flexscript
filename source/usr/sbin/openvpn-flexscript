@@ -319,22 +319,26 @@ case "$USER" in
 		fi
 
 
+		local NEEDROOT=${NEEDROOT:-1}
+
 		check_plugassy
+		local PLUGASSY_NEEDS_UPDATE=$?
 		# check if we refuse to configure (only on "configuration creation"; on configuration destruction we need to run anyway to deconfigure as much as possible)
-		if [ $? -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
+		if [ $PLUGASSY_NEEDS_UPDATE -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
 		then
 			# run the plugins 
 			run_plugins
 			PLUGRETVAL=$?
 			[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
-			PLUGASSY_NEEDS_UPDATE=0
 		else 
-			PLUGASSY_NEEDS_UPDATE=1
 		fi
 
-		# Run script in next stage
-		sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE"
-		RETVAL=$?
+		# Run script in next stage, but only if requested by plugin or assembly refresh is needed
+		if [ $NEEDROOT -ne 0 ] || [$PLUGASSY_NEEDS_UPDATE -eq 1 ]  ;
+		then
+			sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE"
+			RETVAL=$?
+		fi
 
 		# fail if we did not run our own stage plugins due to missing assembly
 		[ $PLUGRETVAL -eq 1022 ] && return 1022
@@ -366,6 +370,7 @@ case "$USER" in
 			exit 89
 		fi
 
+		exit 0
 
 		;;
 	*)	
