@@ -156,6 +156,29 @@ plugspresent () {
 }
 
 
+check_plugassy () {
+
+	# assy changedate
+	CDATE_ASSY=`flock -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
+
+	# last change date of plugs
+	CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX | sort | tail -n 1`
+
+	# last change of plugdir
+	CDATE_PLUGDIR=`stat -c  %Y -L $PLUGDIRRUNNING`
+
+
+	if [ $CDATE_ASSY -lt $CDATE_PLUGDIR ] || [ $CDATE_ASSY -lt $CDATE_PLUGS ] ;
+	then
+		# we need to update
+		return 1
+	else
+		# no update needed
+		return 0
+	fi
+
+}
+
 refresh_plugassy () {
 	
 	# need to refresh the assy file?
@@ -182,17 +205,8 @@ refresh_plugassy () {
 		chown root:"$STAGE1USER" "$PLUGASSYFILE"
 		chmod 750 "$PLUGASSYFILE"
 	else
-		# assy changedate
-		CDATE_ASSY=`flock -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
-
-		# last change date of plugs
-		CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX | sort | tail -n 1`
-
-		# last change of plugdir
-		CDATE_PLUGDIR=`stat -c  %Y -L $PLUGDIRRUNNING`
-
-
-		if [ $CDATE_ASSY -lt $CDATE_PLUGDIR -o $CDATE_ASSY -lt $CDATE_PLUGS ] ;
+		check_plugassy
+		if [ $? -eq 1 ] ;
 		then
 			logmessage "INFO: refreshing assembly" 0
 			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
@@ -293,10 +307,18 @@ case "$USER" in
 		plugspresent
 		[ $? -ne 0 ] && logmessage "INFO: no plugins in this script_type. Aborting! " 1
 
-		# run the plugins 
-		run_plugins
-		PLUGRETVAL=$?
-		[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
+		check_plugassy
+		# check if we refuse to configure (only on "configuration creation"; on configuration destruction we need to run anyway to deconfigure as much as possible)
+		if [ $? -eq 0 ] ;
+		then
+			# no update needed run the plugins 
+			run_plugins
+			PLUGRETVAL=$?
+			[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
+			PLUGASSY_NEEDS_UPDATE=0
+		else 
+			PLUGASSY_NEEDS_UPDATE=1
+		fi
 
 		# Run script in next stage
 		sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE"
@@ -304,6 +326,10 @@ case "$USER" in
 
 		# fail if we did not run our own stage plugins due to missing assembly
 		[ $PLUGRETVAL -eq 1022 ] && return 1022
+
+		# fail if we did not run our own stage plugins because they were outdated
+		[ $PLUGASSY_NEEDS_UPDATE -eq 1 ] && return 1023
+
 		exit $RETVAL
 		;;
 	"root")
