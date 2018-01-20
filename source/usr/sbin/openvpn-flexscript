@@ -121,7 +121,7 @@ getcheckenvironment () {
 	# 0 no, 1=yes
 	MAPDEV2LOGTAG=${MAPDEV2LOGTAG:-0}
 
-	local NEEDROOT=${NEEDROOT:-1}
+	NEEDROOT=${NEEDROOT:-1}
 
 	# check environment (-> man openvpn)
 
@@ -159,7 +159,7 @@ plugspresent () {
 
 	#search module links
 	find $PLUGDIRRUNNING -name "*.$MODULEPRFX" -type l | grep "/" >/dev/null
-	RETVAL=$( $RETVAL + $? )
+	RETVAL=$(( $RETVAL + $? ))
 
 	# grep retruns 0 if plugin link was found
 	return $?
@@ -210,7 +210,7 @@ refresh_plugassy () {
 
 	if [ ! -f $PLUGASSYFILE ] ;
 	then 
-		logmessage "INFO: initially creating assembly" 0
+		logmessage "INFO: initially creating assembly (script_type: $script_type)" 0
 		cat $PLUGDIRRUNNING/*.$MODULEPRFX $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
 		chown root:"$STAGE1USER" "$PLUGASSYFILE"
 		chmod 750 "$PLUGASSYFILE"
@@ -219,7 +219,7 @@ refresh_plugassy () {
 		check_plugassy
 		if [ $? -eq 1 ] ;
 		then
-			logmessage "INFO: refreshing assembly" 0
+			logmessage "INFO: refreshing assembly (script_type: $script_type)" 0
 			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$MODULEPRFX "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
 			chown root:"$STAGE1USER" "$PLUGASSYFILE"
 			chmod 750 "$PLUGASSYFILE"
@@ -290,6 +290,8 @@ getcheckenvironment "$1"
 # select stage
 [ $DEBUG -ge 4 ] && echo "DEBUG4: USER is \"$USER\""
 
+DECONFIGURE=0
+
 
 case "$USER" in
 	"$STAGE0USER")
@@ -323,14 +325,13 @@ case "$USER" in
 		# are we deconfiguring?
 		if [ $script_type = "down" ] || [ $script_type = "client-disconnect" ] || [ $script_type = "ipchange" ] ;
 		then
-			local DECONFIGURE=1
-		else
-			local DECONFIGURE=0
+			DECONFIGURE=1
 		fi
 
 
 		check_plugassy
-		local PLUGASSY_NEEDS_UPDATE=$?
+		PLUGASSY_NEEDS_UPDATE=$?
+		PLUGRETVAL=0
 		# check if we refuse to configure (only on "configuration creation"; on configuration destruction we need to run anyway to deconfigure as much as possible)
 		if [ $PLUGASSY_NEEDS_UPDATE -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
 		then
@@ -338,7 +339,6 @@ case "$USER" in
 			run_plugins
 			PLUGRETVAL=$?
 			[ $PLUGRETVAL -ne 0 -a $PLUGRETVAL -ne 1022 ] && logmessage "ERROR: Aborting stage 1 due to plugin error." $PLUGRETVAL 
-		else 
 		fi
 
 		# Run script in next stage, but only if requested by plugin or assembly refresh is needed
@@ -360,9 +360,7 @@ case "$USER" in
 		# are we deconfiguring?
 		if [ $script_type = "down" ] || [ $script_type = "client-disconnect" ] || [ $script_type = "ipchange" ] ;
 		then
-			local DECONFIGURE=1
-		else
-			local DECONFIGURE=0
+			DECONFIGURE=1
 		fi
 
 		# run the plugins 
