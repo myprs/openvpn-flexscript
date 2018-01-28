@@ -12,6 +12,12 @@ echo "usage: $CALLNAME [-c CONFIGFILE] [-l LOGTAG] "
 }
 
 
+cleanup () {
+
+	[ -n "$OVPNTMPFILEKEEP" ] && [ $OVPNTMPFILEKEEP -eq 0 ] && rm "$OVPNTMPFILE"
+}
+
+
 logmessage () {
 
 	# $1 must be the message
@@ -60,7 +66,11 @@ eolog
 	[ -t 0 ] && echo "\n$LOGMESSAGE" >&2
 
 	# if return value not zero then exit with return value
-	[ $EXITCODE -ne 0 ] && exit $EXITCODE
+	if [ $EXITCODE -ne 0 ] ;
+	then 
+		cleanup
+		exit $EXITCODE
+	fi
 
 }
 
@@ -101,21 +111,71 @@ getcheckenvironment () {
 	PLUGASSYLCKFILE="$PLUGDIRRUNNING/$PLUGASSYLCKNAME"
 
 
-	# set own environment
-	OVPNTMPFILE="$1"
-
 	# if user variable is not set, set it.
 	[ -z "$USER" ] && USER=`whoami`
 
-	## we already have set CONFIG
+	## we might already have set this in CONFIG
 	STAGE0USER=${STAGE0USER:-"nobody"}
 	STAGE1USER=${STAGE1USER:-"openvpn"}
+
+	# set own environment
+
 
 	# logging
 	LOG2SYSTEMD=${LOGTO:-1} 
 	DEF_LOGTAG="openvpn-flexscript"
 	LOGTAG=${LOGTAG:-"$DEF_LOGTAG"}
 
+
+	case "$script_type" in
+		"up")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"tls-verify")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"ipchange")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"client-connect")
+			OVPNTMPFILE="$1"
+			check_cn_characterset "$common_name"
+			;;
+		"route-up")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"route-pre-down")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"client-disconnect")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"down")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"learn-address")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		"auth-user-pass-verify")
+			OVPNTMPFILE="/tmp/openvpn-flexscript-$$.tmp"
+			OVPNTMPFILEKEEP=0
+			;;
+		*)	
+			logmessage "ERROR: unknown script_type: \"$script_type\". Aborting!" 8
+			;;
+	esac
+
+	# do not try to remove TMP-File if we are not running under original user
+	[ "$USER" = "$STAGE0USER" ] && OVPNTMPFILEKEEP=1
+	[ "$USER" = "$STAGE1USER" ] && OVPNTMPFILEKEEP=1
 
 	# create a softlink in the confdir, mapping the devie directory to the logtag
 	# 0 no, 1=yes
@@ -285,6 +345,36 @@ while getopts "$OPTRSTRING" NEXTOPT ;
 #echo $OPTIND
 shift $(( $OPTIND-1 ))
 
+
+# Assign more positional parameters as different openvpn hooks use different number of parameters:
+#
+# script hook			Mode	param1		param2			param3			param4		Retval <> 0
+# ----------------------------------------------------------------------------------------------------------------------------------
+# --up				sc	path to file	„init“|“restart“						log
+# --tls-verify			s	path to file	certificate_depth	subject					log
+# --ipchange			c	path to file	ip_address		port_number				log
+# --client-connect		s	path to file									refuse client
+# --route-up			sc	path to file									log
+# --route-pre-down		sc	path to file									log
+# --client-disconnect		s	path to file									log
+# --down			sc	path to file									log
+# --learn-address		s	path to file	OP: add|update|delete	address: IP(4|6)	common name	log
+# --auth-user-pass-verify	s	path to file									log
+#
+#
+# Please see --up-restart for different behaviour of the --up and --down parameter.
+# Please see --down-pre for different behaviour of the --down
+#
+
+
+logger "DEBUG: Script call \"$1\" \"$2\" \"$3\" \"$4\"; cn: \"$common_name\"; script_type: \"$script_type\" " 
+
+OVPN_PARAM1=${1:-""}
+OVPN_PARAM2=${2:-""}
+OVPN_PARAM3=${3:-""}
+OVPN_PARAM4=${4:-""}
+
+
 getcheckenvironment "$1"
 
 # select stage
@@ -296,24 +386,18 @@ DECONFIGURE=0
 case "$USER" in
 	"$STAGE0USER")
 		
-		if [ -z "$OVPNTMPFILE" ] ;
-		then 
-			# no tempfile requested 
+		# create openvpn tmpfile, as requested
+		touch "$OVPNTMPFILE" || logmessage "ERROR: Could not create temporary file OVPNTMPFILE \"$OVPNTMPFILE\". Aborting!" 10
 
-			# Run script in next stage
-			sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE" 
-			RETVAL=$?
-		else 
-			# create openvpn tmpfile, as requested
-			touch "$OVPNTMPFILE" || logmessage "ERROR: Could not create temporary file \"$OVPNTMPFILE\". Aborting!" 10
-
-			# Run script in next stage, redirct all stdout output into tempfile
-			sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE" >"$OVPNTMPFILE"
-			RETVAL=$?
-		fi
+		# Run script in next stage, redirct all stdout output into tempfile
+		sudo -u "$STAGE1USER" -g "$STAGE1USER" -E "$CALLPATH/$CALLNAME" "$OVPN_PARAM1" "$OVPN_PARAM2" "$OVPN_PARAM3" "$OVPN_PARAM4" >"$OVPNTMPFILE"
+		RETVAL=$?
 
 		# previous scriptlevel did not return 0, remove tmpfile.
 		[ $RETVAL -ne 0 ] && rm -f "$OVPNTMPFILE"
+
+		cleanup
+
 		exit $RETVAL
 		;;
 	"$STAGE1USER")
@@ -344,7 +428,7 @@ case "$USER" in
 		# Run script in next stage, but only if requested by plugin or assembly refresh is needed
 		if [ $NEEDROOT -ne 0 ] || [$PLUGASSY_NEEDS_UPDATE -eq 1 ]  ;
 		then
-			sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$OVPNTMPFILE"
+			sudo -u root -g root -E "$CALLPATH/$CALLNAME" "$OVPN_PARAM1" "$OVPN_PARAM2" "$OVPN_PARAM3" "$OVPN_PARAM4"
 			RETVAL=$?
 		fi
 
@@ -353,6 +437,8 @@ case "$USER" in
 
 		# fail if we did not run our own stage plugins because they were outdated
 		[ $PLUGASSY_NEEDS_UPDATE -eq 1 ] && return 1023
+
+		cleanup
 
 		exit $RETVAL
 		;;
@@ -376,10 +462,13 @@ case "$USER" in
 			exit 89
 		fi
 
+		cleanup
+
 		exit 0
 
 		;;
 	*)	
 		logmessage "ERROR: User \"$USER\" is not assigned to any stage. Aborting!" 50
+		cleanup
 		;;
 esac
