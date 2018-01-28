@@ -75,6 +75,19 @@ eolog
 }
 
 
+check_cn_characterset () {
+
+	# Expects common name is $1
+	# Checks if the string just contains expected characters. OpenVPN and openssl support complete UTF-8
+	# and since 2.4 character remapping is deprecated. Nevertheless these scripts use the strings in a 
+	# simplistic manner, feding it directly to programs, interpreting the string as RegExp. This can lead from
+	# unexpected behaviour to security risks. By limiting the allowed character set, we minimise this 
+	# risk.
+
+	[ -n "$1" ] && echo "$1" | grep -E '^[-._@a-zA-ZäÄöÖüÜß0-9]*$' >/dev/null || logmessage "ERROR: Common Name \"$1\" contains illegal characters. Please use characters out of [-._@a-zA-ZäÄöÖüÜß0-9]. Aborting! " 18
+
+}
+
 getcheckenvironment () {
 
 	# check if variable dev is set and makes sense
@@ -100,7 +113,7 @@ getcheckenvironment () {
 	PLUGDIR="$CONFIGDIR/plugins"
 	PLUGDIRBIN="$PLUGDIR/bin"
 	PLUGDIRRUNNING="$PLUGDIR/script_type/$script_type"
-	[ -d "$PLUGDIRRUNNING" ] || logmessage "ERROR: Plugindir \"$PLUGDIRRUNNING\" not found. Aborting!" 6
+	[ -d "$PLUGDIRRUNNING" ] || logmessage "ERROR: Plugindir \"$PLUGDIRRUNNING\" not found. Aborting!" 7
 	PLUGDIRETC="$PLUGDIR/etc"
 	PLUGINPRFX="plug"
 	MODULEDIRETC="$PLUGDIR/etc"
