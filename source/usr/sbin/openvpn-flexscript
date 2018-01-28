@@ -189,10 +189,10 @@ getcheckenvironment () {
 	# nobody has no rights to query the databases
 	if [ "$USER" != "nobody" ] ; 
 	then
-		getent passwd "$STAGE0USER" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: User \"$STAGE0USER\" in variable STAGE0USER does not exist. Aborting!" 7
+		getent passwd "$STAGE0USER" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: User \"$STAGE0USER\" in variable STAGE0USER does not exist. Aborting!" 9
 
 		## check STAGE1USER
-		getent passwd "$STAGE1USER" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: User \"$STAGE1USER\" in variable STAGE1USER does not exist. Aborting!" 8
+		getent passwd "$STAGE1USER" >/dev/null ; [ $? -eq 0 ] || logmessage "ERROR: User \"$STAGE1USER\" in variable STAGE1USER does not exist. Aborting!" 10
 	fi
 
 	# check MAPDEV2LOGTAG
@@ -200,7 +200,7 @@ getcheckenvironment () {
 	then 
 		if [ "$LOGTAG" = "$DEF_LOGTAG" ] ;
 		then
-			logmessage "ERROR: MAPDEV2LOGTAG = 1 needs LOGTAG to be set differently from default \"$DEF_LOGTAG\". Aborting!" 9
+			logmessage "ERROR: MAPDEV2LOGTAG = 1 needs LOGTAG to be set differently from default \"$DEF_LOGTAG\". Aborting!" 11
 		else
 			[ -L "$CONFIGBASE/$LOGTAG"  ] || ln -s "$CONFIGBASE/$dev" "$CONFIGBASE/$LOGTAG"
 		fi
@@ -228,14 +228,23 @@ plugspresent () {
 
 check_plugassy () {
 
+	# assy available?
+	[ -r "$PLUGASSYLCKFILE" ] || return 1
+
 	# assy changedate
 	CDATE_ASSY=`flock -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
 
 	# last change date of plugs
 	CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX $PLUGDIRRUNNING/*.$MODULEPRFX | sort | tail -n 1`
 
+	# did last command return values?
+	[ -z "$CDATE_PLUGS" ] && return 1
+
 	# last change of plugdir
 	CDATE_PLUGDIR=`stat -c  %Y -L $PLUGDIRRUNNING`
+
+	# did last command return values?
+	[ -z "$CDATE_PLUGDIR" ] && return 1
 
 
 	if [ $CDATE_ASSY -lt $CDATE_PLUGDIR ] || [ $CDATE_ASSY -lt $CDATE_PLUGS ] ;
@@ -260,11 +269,39 @@ refresh_plugassy () {
 	# use flock...
 	if [ -f "$PLUGASSYLCKFILE" ] ;
 	then
-		touch "$PLUGASSYLCKFILE"
-		chown root:"$STAGE1USER" "$PLUGASSYLCKFILE"
-		chmod 660 "$PLUGASSYLCKFILE"
-		chown root:"$STAGE1USER" `dirname "$PLUGASSYLCKFILE"`
-		chmod 770 `dirname "$PLUGASSYLCKFILE"`
+		if [ "$USER" = "root" ] ; 
+		then 
+			touch "$PLUGASSYLCKFILE" \
+				|| logmessage "ERROR: Could not create temporary file PLUGASSYLCKFILE \"$PLUGASSYLCKFILE\". Aborting!" 11
+
+			chown root:"$STAGE1USER" "$PLUGASSYLCKFILE" \
+				|| logmessage "ERROR: Cannot change ownership on \"$PLUGASSYLCKFILE\". Maybe missing CAP_CHOWN on service?" 12
+			chmod 660 "$PLUGASSYLCKFILE"
+			chown root:"$STAGE1USER" `dirname "$PLUGASSYLCKFILE"` \
+				|| logmessage "ERROR: Cannot change ownership on \"`dirname $PLUGASSYLCKFILE`\". Maybe missing CAP_CHOWN on service?" 13
+ 
+			chmod 770 `dirname "$PLUGASSYLCKFILE"`
+		else
+			NEEDROOT=$(($NEEDROOT+1))
+		fi
+
+	fi
+
+	if [ ! "`stat -c "%u:%g" "$PLUGASSYLCKFILE"`" = "root:$STAGE1USER" ] ;
+	then
+		if [ "$USER" = "root" ] ;
+		then
+			NEEDROOT=$(($NEEDROOT+1))
+		else
+			chown root:"$STAGE1USER" "$PLUGASSYLCKFILE" \
+				|| logmessage "ERROR: Cannot change ownership on \"$PLUGASSYLCKFILE\". Maybe missing CAP_CHOWN on service?" 14
+
+			chmod 660 "$PLUGASSYLCKFILE"
+			chown root:"$STAGE1USER" `dirname "$PLUGASSYLCKFILE"` \
+				|| logmessage "ERROR: Cannot change ownership on directory \"`dirname $PLUGASSYLCKFILE`\". Maybe missing CAP_CHOWN on service?" 15
+
+			chmod 770 `dirname "$PLUGASSYLCKFILE"`
+		fi
 	fi
 
 
@@ -272,7 +309,8 @@ refresh_plugassy () {
 	then 
 		logmessage "INFO: initially creating assembly (script_type: $script_type)" 0
 		cat $PLUGDIRRUNNING/*.$MODULEPRFX $PLUGDIRRUNNING/*.$PLUGINPRFX > $PLUGASSYFILE
-		chown root:"$STAGE1USER" "$PLUGASSYFILE"
+		chown root:"$STAGE1USER" "$PLUGASSYFILE" || logmessage "DEBUG: Error5" 0
+
 		chmod 750 "$PLUGASSYFILE"
 		return 1
 	else
@@ -281,7 +319,8 @@ refresh_plugassy () {
 		then
 			logmessage "INFO: refreshing assembly (script_type: $script_type)" 0
 			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$MODULEPRFX "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
-			chown root:"$STAGE1USER" "$PLUGASSYFILE"
+			chown root:"$STAGE1USER" "$PLUGASSYFILE" || logmessage "DEBUG: Error6" 0
+
 			chmod 750 "$PLUGASSYFILE"
 			return 2
 		fi
@@ -451,15 +490,21 @@ case "$USER" in
 
 		# run the plugins 
 		refresh_plugassy
+		RETVAL=$?
 
-		if [ $? -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
+		if [ $RETVAL -eq 0 ] || [ $DECONFIGURE -ne 0 ] ;
 		then
 			# we need to run the plugins
 			run_plugins
 			# previous scriptlevel did not return 0, remove tmpfile.
 			exit $?
 		else
-			exit 89
+			if [ $RETVAL -le 2 ] ;
+			then
+				logmessage "INFO: Assembly rewritten. Trying to restart process!" $RETVAL
+			else 
+				logmessage "ERROR: Refreshing assembly did fail. " 89
+			fi
 		fi
 
 		cleanup
