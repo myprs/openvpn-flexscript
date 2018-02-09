@@ -245,7 +245,7 @@ check_plugassy () {
 	[ -r "$PLUGASSYLCKFILE" ] || return 1
 
 	# assy changedate
-	CDATE_ASSY=`flock -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
+	CDATE_ASSY=`flock -w 2 -s $PLUGASSYLCKFILE stat -c %Y -L $PLUGASSYFILE | sort | tail -n 1 `
 
 	# last change date of plugs
 	CDATE_PLUGS=`stat -c %Y -L $PLUGDIRRUNNING/*.$PLUGINPRFX $PLUGDIRRUNNING/*.$MODULEPRFX | sort | tail -n 1`
@@ -331,7 +331,7 @@ refresh_plugassy () {
 		if [ $? -eq 1 ] ;
 		then
 			logmessage "INFO: refreshing assembly (script_type: $script_type)" 0
-			flock -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$MODULEPRFX "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
+			flock -w 2 -e "$PLUGASSYLCKFILE" cat "$PLUGDIRRUNNING"/*.$MODULEPRFX "$PLUGDIRRUNNING"/*.$PLUGINPRFX > "$PLUGASSYFILE"
 			chown root:"$STAGE1USER" "$PLUGASSYFILE" || logmessage "DEBUG: Error6" 0
 
 			chmod 750 "$PLUGASSYFILE"
@@ -348,7 +348,7 @@ run_plugins () {
 	then
 		PLUGRET=0
 		(
-			flock -w 45  9 || return 99
+			flock -w 4  9 || return 99
 			 . $PLUGASSYFILE
 		) 9>"$PLUGASSYLCKFILE"
 		return $PLUGRET
